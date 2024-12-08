@@ -1,35 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>WebSocket Test</title>
 </head>
+
 <body>
     <button onclick="sendMessage()">Send Message</button>
 </body>
+
 <script>
-    const ws = new WebSocket("http://localhost:4000/chat");
-    
-    ws.onclose= (event)=>{
-        console.log("frontend closing", event)
-    }
-    
-    ws.onopen = (event)=>{
-        console.log("websocket connected", event.type)
-    }
+    const ws = new WebSocket("ws://localhost:4000/chat");
 
-    ws.onerror = (event)=>{
-        console.log("websocket connection error", event)
-    }
+    const HEARTBEAT_TIMEOUT = ((1000 * 5) + 1000);  // 6 seconds
+    const HEARTBEAT_VALUE = 1;
 
-    ws.onmessage = (event)=>{
-        console.log(JSON.parse(event.data))
-    }
+    // const heartBeat = () => {
+    //     if (!ws) {
+    //         return;
+    //     }
+    //     if (ws.pingTimeout) {
+    //         clearTimeout(ws.pingTimeout);
+    //     }
 
-    const sendMessage= ()=>{
-        console.log("sending")
-    ws.send((JSON.stringify({message:"m"})))
-    }
+    //     ws.pingTimeout = setTimeout(() => {
+    //         ws.close();
+    //     }, HEARTBEAT_TIMEOUT);
+
+    //     ws.send(JSON.stringify({ binary: true }));
+    // };
+
+    ws.onclose = (event) => {
+        console.log("WebSocket closed", event);
+        if (ws.pingTimeout) {
+            clearTimeout(ws.pingTimeout);
+        }
+    };
+
+    ws.onopen = (event) => {
+        console.log("WebSocket connected", event.type);
+        setInterval(() => {
+            if (ws) {
+                ws.send(JSON.stringify({message: "ping"}))
+            }
+        }, HEARTBEAT_TIMEOUT)
+    };
+
+    ws.onerror = (event) => {
+        console.log("WebSocket error", event);
+    };
+
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.binary) {
+            console.log("Heartbeat received");
+            // heartBeat();
+        } else {
+            console.log("Message:", message);
+        }
+    };
+
+    const sendMessage = () => {
+        console.log("Sending message");
+        ws.send(JSON.stringify({ message: "Hello, WebSocket!" }));
+    };
 </script>
+
 </html>
